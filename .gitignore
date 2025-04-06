@@ -7,7 +7,11 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+*.xlsx
+*.png
+.browser_data
 .Python
+data/
 build/
 develop-eggs/
 dist/

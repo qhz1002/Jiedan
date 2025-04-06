@@ -1,114 +1,110 @@
-from openpyxl import load_workbook
 from playwright.sync_api import sync_playwright
-import cv2
-import numpy as np
-import time
-import base64
+from utils import load_context, load_excel_urls, choose_file
+from pages import (
+    login,
+    buy_now,
+    arrival_notification,
+    mobile_exclusive,
+    out_of_stock,
+    unusual_page,
+)
 
-
-# 加载 Excel 数据
-def load_excel_data(file_path):
-    wb = load_workbook(file_path)
-    sheet = wb.active
-    data = []
-    for row in sheet.iter_rows(min_row=2, min_col=5, values_only=True):  # 从 E2 开始读取
-        if row[0] is None:  # 如果遇到空值，停止读取
-            break
-        data.append(row[0])
-    return data
-
-# 使用 OpenCV 计算滑块目标位置
-def find_target_position(background_path, slider_path):
-    background = cv2.imread(background_path, 0)  # 灰度模式加载背景图片
-    slider = cv2.imread(slider_path, 0)         # 灰度模式加载滑块图片
-    result = cv2.matchTemplate(background, slider, cv2.TM_CCOEFF_NORMED)
-    _, _, _, max_loc = cv2.minMaxLoc(result)
-    return max_loc[0]
-
-# 模拟滑动验证
-def solve_slider_challenge(url):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
-        page.goto(url)
-        page.click('.verifyBtn')
-        
-        # 假设图片保存逻辑保持不变
-        slider_image = page.wait_for_selector('#small_img')
-        img_src = slider_image.get_attribute('src')
-        if img_src.startswith("data:image"):
-            base64_data = img_src.split(",")[1]
-            image_data = base64.b64decode(base64_data)
-            with open('slider.png', "wb") as f:
-                f.write(image_data)
-        
-        background_image = page.wait_for_selector('#cpc_img')
-        img_src = background_image.get_attribute('src')
-        if img_src.startswith("data:image"):
-            base64_data = img_src.split(",")[1]
-            image_data = base64.b64decode(base64_data)
-            with open('background.png', "wb") as f:
-                f.write(image_data)
-
-        # 计算滑块目标位置
-        target_x = find_target_position('background.png', 'slider.png')
-        
-        # 获取滑块元素
-        slider = page.wait_for_selector('.drag-box.slideTip .move-img')
-        slider_box = slider.bounding_box()
-        
-        if not slider_box:
-            print("未能找到滑块元素！")
-            browser.close()
-            return
-
-        # 计算起始和目标坐标
-        start_x = slider_box['x'] + slider_box['width'] / 2
-        start_y = slider_box['y'] + slider_box['height'] / 2
-        end_x = slider_box['x'] + target_x
-        end_y = slider_box['y'] + slider_box['height'] / 2
-
-        # 记录滑动总距离
-        total_slide_distance = abs(end_x - start_x)
-        
-        # 模拟拖动并记录路径
-        steps = 50
-        positions = [(start_x, start_y)]  # 记录每一步的坐标
-        page.mouse.move(start_x, start_y)
-        page.mouse.down()
-        
-        for i in range(steps):
-            current_x = start_x + (end_x - start_x) * (i / steps) + np.random.randint(-2, 3)
-            current_y = start_y + np.random.randint(-2, 3)
-            page.mouse.move(current_x, current_y)
-            positions.append((current_x, current_y))
-        
-        page.mouse.move(end_x, end_y)
-        page.mouse.up()
-        positions.append((end_x, end_y))
-        
-        # 计算模拟移动的总距离
-        simulated_distance = 0
-        for i in range(1, len(positions)):
-            x1, y1 = positions[i-1]
-            x2, y2 = positions[i]
-            step_distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-            simulated_distance += step_distance
-
-        print(f"滑动总距离: {total_slide_distance:.2f} 像素")
-        print(f"模拟移动的距离: {simulated_distance:.2f} 像素")
-
-        time.sleep(2)
-        page.screenshot(path='after_slider.png')
-        print("滑块验证完成！")
-        browser.close()
-
-# 主程序
 if __name__ == "__main__":
-    # 加载 Excel 中的 URL
-    data = load_excel_data('data.xlsx')
-    if not data:
-        print("未读取到有效数据！")
-    else:
-        url = data[0]
-        solve_slider_challenge(url)
+    try:
+        selected_excel = choose_file()
+        print(f"您选择了文件：{selected_excel}")
+        urls, maxBuyCounts, indexes = load_excel_urls(selected_excel)
+    except Exception as e:
+        print(f"加载Excel文件时出错: {e}")
+        exit(1)
+
+    with sync_playwright() as playwright:
+        # 启动 Chromium 浏览器
+        browser = playwright.chromium.launch(headless=False, slow_mo=100)
+
+        # 加载上下文
+        context = load_context(browser)
+
+        # 新建一个上传图片页面
+        upload_page = context.new_page()
+
+        # 创建初始页面,并关闭浏览器的自动化检测
+        item_page = context.new_page()
+        item_page.add_init_script(
+            """Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"""
+        )
+
+        # 登陆页面处理
+        login(item_page, context)
+        # 新建一个商品页面，并添加初始化脚本以禁用webdriver检测
+        # item_page = context.new_page()
+        # item_page.add_init_script(
+        #     """Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"""
+        # )
+
+        # 循环处理每个url
+        for url, maxBuyCount, index in zip(urls, maxBuyCounts, indexes):
+            # 访问页面
+            item_page.goto(url)
+            item_page.wait_for_load_state("domcontentloaded")
+
+            if index % 30 == 0:
+                print("\n处理30个等待1分钟，避免京东服务器检测到频繁访问")
+                item_page.wait_for_timeout(60000)  # 每处理30个商品页面，等待1分钟
+
+            # 检测页面的特殊情况(验证码、账户限制)
+            unusual_page(item_page)
+
+            # 开始处理商品页面
+            print(
+                f"\n---正在打开第 {index-1} 个商品页面, url为{url}, 购买数量为 {maxBuyCount} ---"
+            )
+
+            # 检测 "立即购买" 是否存在
+            if item_page.locator("xpath=//a[@id='InitTradeUrl']").is_visible():
+                print("检测到 '立即购买' 按钮")
+                # 定位到输入框并修改值
+                item_page.fill("#buy-num", str(maxBuyCount))  # 模拟用户个数
+                item_page.wait_for_timeout(1000)  # 等待1秒
+                item_page.click("#InitTradeUrl")  # 点击购买按钮
+                try:
+                    buy_now(item_page, upload_page, index, selected_excel)
+                except:
+                    print("有购买按钮但是要前往App购买")
+                    mobile_exclusive(item_page, upload_page, index, selected_excel)
+
+            # 检测 "到货通知" 或 "售完" 是否存在
+            elif (
+                item_page.locator("xpath=//a[text()='到货通知']").is_visible()
+                or item_page.locator(
+                    "xpath=//span[contains(text(), '此商品暂时售完')]"
+                ).is_visible()
+                or item_page.locator(
+                    "xpath=//div[contains(text(), '此商品暂时无货')]"
+                ).is_visible()
+            ):
+                print("检测到 '到货通知' 或 '无货' 按钮")
+                arrival_notification(item_page, upload_page, index, selected_excel)
+
+            # 检测 "手机专享" 是否存在
+            elif (
+                item_page.locator(
+                    "xpath=//a[contains(text(), '前往手机购买')]"
+                ).is_visible()
+                or item_page.locator(
+                    "xpath=//div[contains(text(), '仅支持手机扫码购买')]"
+                ).is_visible()
+            ):
+                print("检测到 '前往手机购买' 按钮")
+                mobile_exclusive(item_page, upload_page, index, selected_excel)
+
+            # 检测 "缺货" 是否存在
+            elif item_page.locator(
+                "xpath=//div[@class='itemover-tip']"
+            ).is_visible() or item_page.url.startswith("https://www.jd.com/"):
+                print("检测到 '该商品已下柜' ")
+                out_of_stock(item_page, upload_page, index, selected_excel)
+
+            else:
+                print("都未检测到，属于第四种情况，跳过该商品")
+                # input("调试中...")

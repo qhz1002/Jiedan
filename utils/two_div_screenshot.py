@@ -1,6 +1,3 @@
-from playwright.sync_api import Playwright, sync_playwright, expect
-from utils import load_context
-
 def two_div_screenshot(page, div1_selector, div2_selector, screenshot_path, padding=2):  
     """  
     对包括两个 <div> 元素进行截图，确保两个div都完整可见  
@@ -74,25 +71,3 @@ def two_div_screenshot(page, div1_selector, div2_selector, screenshot_path, padd
     except Exception as e:  
         page.screenshot(path=screenshot_path)  
         print(f"区域截图失败: {e}， 已保存全屏截图到 {screenshot_path}")
-
-def run(playwright: Playwright) -> None:
-    browser = playwright.chromium.launch(headless=False)
-    context = load_context(browser)
-    
-    # 创建初始页面,并设置浏览器的自动化检测
-    page = context.new_page()
-    page.add_init_script("""Object.defineProperty(navigator, 'webdriver', {get: () => undefined});""")
-    
-    page.goto("https://trade.jd.com/shopping/order/getOrderInfo.action?source=common")
-    
-    # 定位截图
-    div_start = "xpath=(//div[@class='step-tit'])[4]"
-    div_end = "xpath=//div[@id='checkout-floatbar']"
-    # input("按 Enter 键退出程序...")
-    
-    two_div_screenshot(page, div_start, div_end, "1.png")
-    
-    input("按 Enter 键退出程序...")
-
-with sync_playwright() as playwright:
-    run(playwright)
