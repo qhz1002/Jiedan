@@ -36,11 +36,6 @@ if __name__ == "__main__":
 
         # 登陆页面处理
         login(item_page, context)
-        # 新建一个商品页面，并添加初始化脚本以禁用webdriver检测
-        # item_page = context.new_page()
-        # item_page.add_init_script(
-        #     """Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"""
-        # )
 
         # 循环处理每个url
         for url, maxBuyCount, index in zip(urls, maxBuyCounts, indexes):
@@ -53,7 +48,7 @@ if __name__ == "__main__":
                 item_page.wait_for_timeout(60000)  # 每处理30个商品页面，等待1分钟
 
             # 检测页面的特殊情况(验证码、账户限制)
-            unusual_page(item_page)
+            unusual_page(item_page, browser)
 
             # 开始处理商品页面
             print(
@@ -67,9 +62,11 @@ if __name__ == "__main__":
                 item_page.fill("#buy-num", str(maxBuyCount))  # 模拟用户个数
                 item_page.wait_for_timeout(1000)  # 等待1秒
                 item_page.click("#InitTradeUrl")  # 点击购买按钮
-                try:
+                item_page.wait_for_timeout(1000)  # 等待1秒
+                if item_page.url.startswith("https://trade.jd.com/"):
+                    print("成功跳转到交易页面")
                     buy_now(item_page, upload_page, index, selected_excel)
-                except:
+                else:
                     print("有购买按钮但是要前往App购买")
                     mobile_exclusive(item_page, upload_page, index, selected_excel)
 

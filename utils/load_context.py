@@ -23,7 +23,7 @@ def load_context(browser, state_file=None, **kwargs):
         context = browser.new_context(
             storage_state=storage_state, viewport={"width": 1920, "height": 1280}
         )
-        print("已加载保存的上下文状态")
+        print("已加载保存的登录状态")
     except FileNotFoundError:
         # 如果未找到保存的状态文件，创建新的上下文
         default_kwargs = {
@@ -35,6 +35,6 @@ def load_context(browser, state_file=None, **kwargs):
         # 合并默认参数和用户传入的参数
         final_kwargs = {**default_kwargs, **kwargs}
         context = browser.new_context(**final_kwargs)
-        print("未找到保存的上下文状态，创建新的上下文")
+        print("未找到保存的登录状态，创建新的登录状态")
 
     return context

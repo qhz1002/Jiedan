@@ -1,7 +1,7 @@
 import os
 
 
-def unusual_page(page):
+def unusual_page(page, browser):
 
     # 检测是否需要过验证
     if page.url.startswith("https://cfe.m.jd.com/"):
@@ -16,8 +16,11 @@ def unusual_page(page):
         page.goto(page.url)
 
     # 检测是否被限制
-    elif page.url.startswith("https://www.jd.com/?from=pc_item&reason=403"):
+    elif page.url.startswith(
+        "https://www.jd.com/?from=pc_item&reason=403"
+    ) or page.url.startswith("https://www.jd.com/?from=pc_item_sd"):
         print("账号已被限制，请重新登录")
+        browser.close()
         while True:
             try:
                 choice = int(

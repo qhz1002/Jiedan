@@ -4,7 +4,7 @@ from utils import write_excel, upload_pic, two_div_screenshot
 def arrival_notification(page, upload_page, index, selected_excel):
 
     # 如果有券截图
-    quan_item = page.query_selector(".quan-item")
+    quan_item = page.locator(".quan-item")
     if quan_item:
         quan_item.click()
         page.wait_for_timeout(1000)
