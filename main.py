@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     with sync_playwright() as playwright:
         # 启动 Chromium 浏览器
-        browser = playwright.chromium.launch(headless=False, slow_mo=100)
+        browser = playwright.chromium.launch(headless=False, slow_mo=100, args=["--start-maximized"])
 
         # 加载上下文
         context = load_context(browser)

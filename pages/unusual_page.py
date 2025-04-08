@@ -19,22 +19,22 @@ def unusual_page(page, browser):
     elif page.url.startswith(
         "https://www.jd.com/?from=pc_item&reason=403"
     ) or page.url.startswith("https://www.jd.com/?from=pc_item_sd"):
-        print("账号已被限制，请重新登录")
+        print(f"网址自动跳转到{page.url}\n账号已被限制，请更换账号重新登录")
         browser.close()
         while True:
-            try:
-                choice = int(
-                    input(
-                        "是否删除登录信息？(输入 0 回车删除, 直接回车不删除退出程序): "
-                    )
+            choice = int(
+                input(
+                    "是否删除登录信息？(输入 0 回车删除, 直接回车不删除退出程序): "
                 )
-                if choice == 0:
+            )
+            if choice == 0:
+                try:
                     os.remove("state.json")
                     print("已删除登录信息，请重新运行程序")
                     exit(1)
-                else:
-                    print("程序退出")
+                except FileNotFoundError:
+                    print("未找到登录信息文件，可能已被删除")
                     exit(1)
-            except ValueError:
+            else:
                 print("程序退出")
                 exit(1)

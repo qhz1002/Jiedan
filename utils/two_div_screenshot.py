@@ -8,9 +8,13 @@ def two_div_screenshot(page, div1_selector, div2_selector, screenshot_path, padd
     :param padding: 额外的边距空间（像素）  
     """  
 
-    # 定位两个 <div>  
-    div1 = page.locator(div1_selector)  
-    div2 = page.locator(div2_selector)  
+    # 定位两个 <div> 
+    try: 
+        div1 = page.locator(div1_selector)  
+        div2 = page.locator(div2_selector)  
+    except Exception as e:
+        print(f"定位元素失败: {e}")
+        return
 
     # 等待两个 <div> 加载完成  
     div1.wait_for()  

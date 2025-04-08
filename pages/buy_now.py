@@ -7,10 +7,10 @@ def buy_now(page, upload_page, index, selected_excel):
     div_start = "xpath=(//div[@class='step-tit'])[4]"
     div_end = "xpath=//div[@id='checkout-floatbar']"
      
-    two_div_screenshot(page, div_start, div_end, "1.png")
+    two_div_screenshot(page, div_start, div_end, "image.png")
 
     # 上传截图获取图片url
-    final_url = upload_pic(upload_page, "1.png")
+    final_url = upload_pic(upload_page, "image.png")
 
     # 将生成的url写入excel
     write_excel(selected_excel, index, 9, final_url)

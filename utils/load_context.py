@@ -21,20 +21,22 @@ def load_context(browser, state_file=None, **kwargs):
         with open(state_file) as f:
             storage_state = json.load(f)
         context = browser.new_context(
-            storage_state=storage_state, viewport={"width": 1920, "height": 1280}
+            storage_state=storage_state,
+            viewport=None,  # 不设置默认视口，保持浏览器窗口大小
+            no_viewport=True,
         )
         print("已加载保存的登录状态")
     except FileNotFoundError:
         # 如果未找到保存的状态文件，创建新的上下文
         default_kwargs = {
-            "viewport": {"width": 1920, "height": 1280},
+            "viewport": None,  # 不设置默认视口，保持浏览器窗口大小
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
             "locale": "zh-CN",
             "timezone_id": "Asia/Shanghai",
         }
         # 合并默认参数和用户传入的参数
         final_kwargs = {**default_kwargs, **kwargs}
-        context = browser.new_context(**final_kwargs)
+        context = browser.new_context(**final_kwargs, no_viewport=True)
         print("未找到保存的登录状态，创建新的登录状态")
 
     return context
