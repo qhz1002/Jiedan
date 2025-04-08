@@ -10,7 +10,7 @@ def list_excel_files():
 
     if not files:
         print("当前目录下没有找到任何 .xlsx 文件！")
-        return None
+        exit(0)
 
     # 打印文件列表
     print("当前目录下的 .xlsx 文件：")
